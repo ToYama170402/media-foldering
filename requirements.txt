@@ -1,0 +1,2 @@
+ExifRead
+ffmpeg-python
