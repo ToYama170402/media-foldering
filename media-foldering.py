@@ -1,37 +1,19 @@
-import os
 from ffmpeg import probe
 import exifread
 import datetime
 import pathlib
+import filecmp
 
 
-# ファイルパスと撮影日時を保持するクラス
-class Media:
-    def __init__(self, FilePath: pathlib.Path, Date: datetime.datetime):
-        self.FilePath = pathlib.Path(FilePath)
-        self.Date = Date
-
-
-# 指定ディレクトリの中をファイルを再帰的に探索する関数
-# pathlib.pathのリストを返す
-def FindFileDirectory(Directory: str, FileExts: list) -> list:
-    DirectoryPath = pathlib.Path(Directory)
-    if DirectoryPath.is_dir() and DirectoryPath.exists():
-        FilePathList = []
-        for CurrentDirectory, Directories, Files in os.walk(Directory):
-            for File in Files:
-                FilePath = pathlib.Path(CurrentDirectory, File)
-                ext = FilePath.suffix
-                for FileExt in FileExts:
-                    if ext.casefold() == FileExt.casefold():
-                        FilePathList.append(FilePath)
-        return FilePathList
-    else:
-        return None
-
-
-# 指定された画像ファイルの撮影日時を取得
 def ImageDateTime(ImagePath: pathlib) -> datetime.datetime:
+    """指定された画像ファイルの撮影日時を取得
+
+    Args:
+        ImagePath (pathlib): 撮影日時を取得したいファイルを指定
+
+    Returns:
+        datetime.datetime: Exifの撮影日時に該当するものを返す
+    """
     if ImagePath.is_file and ImagePath.exists():
         with open(ImagePath, "rb") as ImageFile:
             try:
@@ -57,8 +39,15 @@ def ImageDateTime(ImagePath: pathlib) -> datetime.datetime:
         return None
 
 
-# 指定された動画ファイルの撮影日時を取得
 def VideoDateTime(VideoPath: pathlib) -> datetime.datetime:
+    """指定された動画ファイルの撮影日時を取得
+
+    Args:
+        VideoPath (pathlib):撮影日時を取得したい動画ファイルを指定
+
+    Returns:
+        datetime.datetime: 撮影日時に該当する日付を返す
+    """
     if VideoPath.is_file:
         MetaData = probe(VideoPath)
         try:
@@ -76,8 +65,15 @@ def VideoDateTime(VideoPath: pathlib) -> datetime.datetime:
         return None
 
 
-# ImageDateTimeとVideoDateTimeのどちらか機能する方を返す
 def CreationTime(MediaPath: pathlib) -> datetime.datetime:
+    """ImageDateTime()とVideoDateTime()のどちらか機能する方を返す
+
+    Args:
+        MediaPath (pathlib): 撮影日時を取得したい画像・動画ファイルを指定
+
+    Returns:
+        datetime.datetime: 撮影日時に該当する日付を返す
+    """
     if MediaPath.is_file:
         if ImageDateTime(MediaPath) != None:
             return ImageDateTime(MediaPath)
@@ -87,15 +83,30 @@ def CreationTime(MediaPath: pathlib) -> datetime.datetime:
             return None
 
 
-# 指定ディレクトリ/年/月/日/年-月-日 時-分 ゼロ埋め三桁整数.拡張子 のパスを生成
 def GeneratePath(Directory: pathlib, File: pathlib, MediaTime: datetime, Num: int) -> pathlib:
+    """指定ディレクトリ/年/月/日/年-月-日 時-分 ゼロ埋め三桁整数.拡張子 のパスを生成
+
+    Args:
+        Directory (pathlib): ディレクトリを指定
+        File (pathlib): 画像・動画ファイルを指定
+        MediaTime (datetime): 画像・動画ファイルの撮影日時を指定
+        Num (int): ファイル名末尾につける数字を指定
+
+    Returns:
+        pathlib: 生成したファイルパスを返す
+    """
     MovePath = Directory / \
         f"{MediaTime:%Y/%m/%d/%Y-%m-%d %H-%M} {Num:03}{File.suffix}"
     return MovePath
 
 
-# 指定されたディレクトリに指定されたファイルをリネームして移動
 def MoveMedia(Directory: pathlib, File: pathlib):
+    """指定されたディレクトリに指定されたファイルをリネームして移動
+
+    Args:
+        Directory (pathlib): 移動先ディレクトリを指定
+        File (pathlib): 移動するファイルを指定
+    """
     if File.is_file():
         MediaTime = CreationTime(File)
         num = 0
@@ -105,5 +116,22 @@ def MoveMedia(Directory: pathlib, File: pathlib):
             MovePath = GeneratePath(Directory, File, MediaTime, num)
         MovePath.parent.mkdir(parents=True, exist_ok=True)
         File.rename(MovePath)
-    else:
-        return None
+
+
+def FindDuplicatedFile(File: pathlib, Directory: pathlib) -> bool:
+    """指定されたディレクトリに指定されたファイルと同等のものがあるか判断
+
+    Args:
+        File (pathlib): 同一ファイルの存在を確認したいファイルを指定
+        Directory (pathlib): 確認先のディレクトリを指定
+
+    Returns:
+        bool: 同一ファイルが存在すればTrue、なければFalse
+    """
+    if File.is_file() and Directory.is_dir:
+        Ext = File.suffix
+        for CompFile in Directory.glob(f"**/*{Ext}"):
+            if filecmp.cmp(File, CompFile):
+                return True
+            else:
+                return False
