@@ -3,6 +3,7 @@ import exifread
 import datetime
 import pathlib
 import filecmp
+import json
 
 
 def ImageDateTime(ImagePath: pathlib) -> datetime.datetime:
@@ -83,37 +84,24 @@ def CreationTime(MediaPath: pathlib) -> datetime.datetime:
             return None
 
 
-def GeneratePath(Directory: pathlib, File: pathlib, MediaTime: datetime, Num: int) -> pathlib:
-    """指定ディレクトリ/年/月/日/年-月-日 時-分 ゼロ埋め三桁整数.拡張子 のパスを生成
-
-    Args:
-        Directory (pathlib): ディレクトリを指定
-        File (pathlib): 画像・動画ファイルを指定
-        MediaTime (datetime): 画像・動画ファイルの撮影日時を指定
-        Num (int): ファイル名末尾につける数字を指定
-
-    Returns:
-        pathlib: 生成したファイルパスを返す
-    """
-    MovePath = Directory / \
-        f"{MediaTime:%Y/%m/%d/%Y-%m-%d %H-%M} {Num:03}{File.suffix}"
-    return MovePath
-
-
-def MoveMedia(Directory: pathlib, File: pathlib):
+def MoveMedia(Directory: pathlib, File: pathlib, RenamePattern: str):
     """指定されたディレクトリに指定されたファイルをリネームして移動
 
     Args:
         Directory (pathlib): 移動先ディレクトリを指定
         File (pathlib): 移動するファイルを指定
+        RenamePattern(str):リネームのパターン
     """
     if File.is_file():
         MediaTime = CreationTime(File)
-        num = 0
-        MovePath = GeneratePath(Directory, File, MediaTime, num)
-        while MovePath.exists():
-            num += 1
-            MovePath = GeneratePath(Directory, File, MediaTime, num)
+        Num = 0
+        while True:
+            MovePath = Directory / \
+                f"{MediaTime:{RenamePattern}} {Num:03}{File.suffix}"
+            if not MovePath.exists():
+                break
+            else:
+                Num += 1
         MovePath.parent.mkdir(parents=True, exist_ok=True)
         File.rename(MovePath)
 
@@ -135,3 +123,15 @@ def FindDuplicatedFile(File: pathlib, Directory: pathlib) -> bool:
                 return True
             else:
                 return False
+
+
+if __name__ == "__main__":
+    with open("setting.json", "r", encoding="utf-8")as SettingFile:
+        Setting = json.load(SettingFile)
+    InputDir = pathlib.Path(Setting["InputDir"])
+    OutputDir = pathlib.Path(Setting["OutputDir"])
+    NamePattern = pathlib.Path(Setting["NamePattern"])
+    if InputDir.is_dir() and OutputDir.is_dir():
+        for MediaFile in InputDir.glob():
+            if not FindDuplicatedFile(MediaFile, OutputDir):
+                MoveMedia(OutputDir, MediaFile, NamePattern)
