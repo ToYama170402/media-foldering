@@ -77,11 +77,13 @@ def CreationTime(MediaPath: pathlib) -> datetime.datetime:
     """
     if MediaPath.is_file:
         if ImageDateTime(MediaPath) != None:
-            return ImageDateTime(MediaPath)
+            MediaDateTime = ImageDateTime(MediaPath)
         elif VideoDateTime(MediaPath) != None:
-            return VideoDateTime(MediaPath)
+            MediaDateTime = VideoDateTime(MediaPath)
         else:
             return None
+        print(f"{MediaPath} : {MediaDateTime}")
+        return MediaDateTime
 
 
 def MoveMedia(Directory: pathlib, File: pathlib, RenamePattern: str):
@@ -93,15 +95,26 @@ def MoveMedia(Directory: pathlib, File: pathlib, RenamePattern: str):
         RenamePattern(str):リネームのパターン
     """
     if File.is_file():
-        MediaTime = CreationTime(File)
-        Num = 0
-        while True:
-            MovePath = Directory / \
-                f"{MediaTime:{RenamePattern}} {Num:03}{File.suffix}"
-            if not MovePath.exists():
-                break
-            else:
-                Num += 1
+        if CreationTime(File) == None:
+            Num = 0
+            while True:
+                MovePath = Directory / \
+                    f"No EXIF/{File.stem} {Num:03}{File.suffix}"
+                if not MovePath.exists():
+                    break
+                else:
+                    Num += 1
+        elif CreationTime(File) != None:
+            MediaTime = CreationTime(File)
+            Num = 0
+            while True:
+                MovePath = Directory / \
+                    f"{MediaTime:{RenamePattern}} {Num:03}{File.suffix}"
+                if not MovePath.exists():
+                    break
+                else:
+                    Num += 1
+        print(f"{File} to {MovePath}")
         MovePath.parent.mkdir(parents=True, exist_ok=True)
         File.rename(MovePath)
 
@@ -111,7 +124,7 @@ def FindDuplicatedFile(File: pathlib, Directory: pathlib) -> bool:
 
     Args:
         File (pathlib): 同一ファイルの存在を確認したいファイルを指定
-        Directory (pathlib): 確認先のディレクトリを指定
+        Directories (pathlib): 確認先のディレクトリを指定
 
     Returns:
         bool: 同一ファイルが存在すればTrue、なければFalse
@@ -119,10 +132,10 @@ def FindDuplicatedFile(File: pathlib, Directory: pathlib) -> bool:
     if File.is_file() and Directory.is_dir:
         Ext = File.suffix
         for CompFile in Directory.glob(f"**/*{Ext}"):
-            if filecmp.cmp(File, CompFile):
+            if filecmp.cmp(File, CompFile, False) and File != CompFile:
+                print(f"{File} = {CompFile}")
                 return True
-            else:
-                return False
+        return False
 
 
 if __name__ == "__main__":
@@ -130,8 +143,8 @@ if __name__ == "__main__":
         Setting = json.load(SettingFile)
     InputDir = pathlib.Path(Setting["InputDir"])
     OutputDir = pathlib.Path(Setting["OutputDir"])
-    NamePattern = pathlib.Path(Setting["NamePattern"])
+    NamePattern = Setting["NamePattern"]
     if InputDir.is_dir() and OutputDir.is_dir():
-        for MediaFile in InputDir.glob():
-            if not FindDuplicatedFile(MediaFile, OutputDir):
+        for MediaFile in InputDir.glob(pattern="**/*"):
+            if MediaFile.is_file() and not FindDuplicatedFile(MediaFile, OutputDir):
                 MoveMedia(OutputDir, MediaFile, NamePattern)
