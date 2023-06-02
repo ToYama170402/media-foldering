@@ -2,6 +2,7 @@ from ffmpeg import probe
 import exifread
 import datetime
 import pathlib
+import shutil
 import filecmp
 import json
 
@@ -148,3 +149,6 @@ if __name__ == "__main__":
         for MediaFile in InputDir.glob(pattern="**/*"):
             if MediaFile.is_file() and not FindDuplicatedFile(MediaFile, OutputDir):
                 MoveMedia(OutputDir, MediaFile, NamePattern)
+for dir in InputDir.glob("*/"):
+    print(f"{dir was deleted}")
+    shutil.rmtree(dir)
