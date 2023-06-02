@@ -150,5 +150,5 @@ if __name__ == "__main__":
             if MediaFile.is_file() and not FindDuplicatedFile(MediaFile, OutputDir):
                 MoveMedia(OutputDir, MediaFile, NamePattern)
 for dir in InputDir.glob("*/"):
-    print(f"{dir was deleted}")
+    print(f"{dir} was deleted")
     shutil.rmtree(dir)
