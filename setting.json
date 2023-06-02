@@ -1,5 +1,5 @@
 {
-  "InputDir": "",
-  "OutputDir": "",
-  "NamePattern": "%Y/%m/%d/%Y-%m-%d %h-%M"
+  "InputDir": "./test/from",
+  "OutputDir": "./test/to",
+  "NamePattern": "%Y/%m/%d/%Y-%m-%d %H-%M-%S"
 }
