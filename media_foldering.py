@@ -33,7 +33,8 @@ def ImageDateTime(ImagePath: pathlib) -> datetime.datetime:
         if DateTimeOriginal != None:
             try:
                 CreationTime = datetime.datetime.strptime(
-                    str(DateTimeOriginal), "%Y:%m:%d %H:%M:%S")
+                    str(DateTimeOriginal), "%Y:%m:%d %H:%M:%S"
+                )
             except ValueError:
                 return None
             return CreationTime
@@ -51,7 +52,6 @@ def VideoDateTime(VideoPath: pathlib) -> datetime.datetime:
         datetime.datetime: 撮影日時に該当する日付を返す
     """
     if VideoPath.is_file:
-        MetaData = probe(VideoPath)
         try:
             MetaData = probe(VideoPath)
             DateTime = MetaData.get("format").get("tags").get("creation_time")
@@ -61,7 +61,8 @@ def VideoDateTime(VideoPath: pathlib) -> datetime.datetime:
             return None
         else:
             CreationTime = datetime.datetime.strptime(
-                DateTime, "%Y-%m-%dT%H:%M:%S.%f%z")
+                DateTime, "%Y-%m-%dT%H:%M:%S.%f%z"
+            )
             LocalCreationTime = CreationTime.astimezone()
             return LocalCreationTime
     else:
@@ -100,8 +101,7 @@ def MoveMedia(Directory: pathlib, File: pathlib, RenamePattern: str):
         if CreationTime(File) == None:
             Num = 0
             while True:
-                MovePath = Directory / \
-                    f"No EXIF/{File.stem} {Num:03}{File.suffix}"
+                MovePath = Directory / f"No EXIF/{File.stem} {Num:03}{File.suffix}"
                 if not MovePath.exists():
                     break
                 else:
@@ -110,8 +110,9 @@ def MoveMedia(Directory: pathlib, File: pathlib, RenamePattern: str):
             MediaTime = CreationTime(File)
             Num = 0
             while True:
-                MovePath = Directory / \
-                    f"{MediaTime:{RenamePattern}} {Num:03}{File.suffix}"
+                MovePath = (
+                    Directory / f"{MediaTime:{RenamePattern}} {Num:03}{File.suffix}"
+                )
                 if not MovePath.exists():
                     break
                 else:
@@ -141,7 +142,7 @@ def FindDuplicatedFile(File: pathlib, Directory: pathlib) -> bool:
 
 
 if __name__ == "__main__":
-    with open("setting.json", "r", encoding="utf-8")as SettingFile:
+    with open("setting.json", "r", encoding="utf-8") as SettingFile:
         Setting = json.load(SettingFile)
     InputDir = pathlib.Path(Setting["InputDir"])
     OutputDir = pathlib.Path(Setting["OutputDir"])
