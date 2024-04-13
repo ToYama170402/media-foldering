@@ -53,8 +53,9 @@ def VideoDateTime(VideoPath: pathlib) -> datetime.datetime:
     if VideoPath.is_file:
         MetaData = probe(VideoPath)
         try:
+            MetaData = probe(VideoPath)
             DateTime = MetaData.get("format").get("tags").get("creation_time")
-        except AttributeError:  # 日付データがなければNoneを返す
+        except:
             return None
         if DateTime == None:
             return None
